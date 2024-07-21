@@ -12,87 +12,52 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #eef2f7;
+            background: url(Images/Background.jpg) no-repeat center center fixed;
+            background-size: cover;
         }
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.9);
             padding: 2em;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
-            text-align: center;
-            max-width: 700px;
+            max-width: 800px;
             width: 100%;
+            position: relative;
         }
         h1 {
             margin-bottom: 1em;
             color: #333;
-            font-size: 1.5em;
+            font-size: 1.8em;
         }
-        input[type="file"] {
+        .form-group {
+            margin-bottom: 1.5em;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input[type="file"] {
             display: none;
         }
-        label {
-            background: #007bff;
-            color: white;
-            padding: 0.6em 1.2em;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 1em;
-            display: inline-block;
-        }
-        button {
-            background: #28a745;
-            color: white;
-            padding: 0.6em 1.2em;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            margin: 0.5em;
-        }
-        button:hover, label:hover {
-            opacity: 0.9;
-        }
-        #result a {
-            margin-top: 1em;
-            display: inline-block;
-            color: #007bff;
-            text-decoration: none;
-            font-size: 1em;
-        }
-        #result a:hover {
-            text-decoration: underline;
-        }
-        #progress {
-            display: none;
-            margin-top: 1em;
-        }
-        #error-message {
-            color: red;
-            margin-top: 1em;
-        }
-        #preview {
-            margin-top: 1em;
-            max-width: 100%;
-            max-height: 300px;
-        }
-        #drop-area {
+        .form-group #drop-area {
             border: 2px dashed #007bff;
             border-radius: 5px;
             padding: 2em;
             cursor: pointer;
-            color: #007bff;
-            margin-bottom: 1em;
+            color: ##008000;
+            text-align: center;
         }
-        #drop-area.hover {
-            background-color: #e9f5ff;
+        .form-group #drop-area.hover {
+            background-color: #228b22;
         }
-        #file-details {
+        .form-group #file-details {
             margin-top: 1em;
             font-size: 0.9em;
             color: #666;
         }
-        .file-item {
+        .form-group .file-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -102,20 +67,68 @@
             border-radius: 5px;
             margin-bottom: 0.5em;
         }
-        .file-item button {
+        .form-group .file-item button {
             background: #dc3545;
+            color: white;
             padding: 0.3em 0.6em;
             font-size: 0.9em;
+            border: none;
+            border-radius: 5px;
         }
-        .spinner {
+        .form-group .file-item button:hover {
+            background: #c82333;
+        }
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1em;
+            justify-content: center;
+        }
+        .form-actions button, .form-actions label {
+            background: #007bff;
+            color: white;
+            padding: 0.6em 1.2em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0.5em;
+            font-size: 1em;
+        }
+        .form-actions button:hover, .form-actions label:hover {
+            opacity: 0.9;
+        }
+        #result {
+            margin-top: 1.5em;
+            text-align: center;
+        }
+        #result a {
+            display: inline-block;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 1.2em;
+        }
+        #result a:hover {
+            text-decoration: underline;
+        }
+        #progress {
+            display: none;
+            margin-top: 1em;
+            text-align: center;
+        }
+        #progress .spinner {
             border: 4px solid #f3f3f3;
             border-radius: 50%;
             border-top: 4px solid #007bff;
-            width: 20px;
-            height: 20px;
+            width: 30px;
+            height: 30px;
             animation: spin 1s linear infinite;
             display: inline-block;
             margin-left: 10px;
+        }
+        #error-message {
+            color: red;
+            margin-top: 1em;
+            text-align: center;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -127,13 +140,18 @@
     <div class="container">
         <h1>Image Converter</h1>
         <form id="upload-form">
-            <div id="drop-area">Drag & Drop PNG/JPEG Files Here or <label for="file-input">Browse</label></div>
-            <input type="file" id="file-input" accept="image/png, image/jpeg" multiple required>
-            <div id="file-details"></div>
-            <button type="submit">Convert to PDF</button>
-            <button type="button" id="convert-to-jpeg">Convert to JPEG</button>
-            <button type="button" id="convert-to-png">Convert to PNG</button>
-            <button type="button" id="reset-btn">Reset</button>
+            <div class="form-group">
+                <label for="file-input">Upload or Drag & Drop Images (PNG/JPEG)</label>
+                <div id="drop-area">Drag & Drop PNG/JPEG Files Here or <label for="file-input">Browse</label></div>
+                <input type="file" id="file-input" accept="image/png, image/jpeg" multiple required>
+                <div id="file-details"></div>
+            </div>
+            <div class="form-actions">
+                <button type="submit">Convert to PDF</button>
+                <button type="button" id="convert-to-jpeg">Convert to JPEG</button>
+                <button type="button" id="convert-to-png">Convert to PNG</button>
+                <button type="button" id="reset-btn">Reset</button>
+            </div>
         </form>
         <div id="progress">Processing, please wait... <span class="spinner"></span></div>
         <div id="result"></div>
@@ -212,6 +230,10 @@
             try {
                 const pdfDoc = await PDFLib.PDFDocument.create();
                 for (const file of files) {
+                    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+                        throw new Error(`Unsupported file type: ${file.type}`);
+                    }
+
                     const reader = new FileReader();
                     const fileLoadPromise = new Promise((resolve, reject) => {
                         reader.onload = async function () {
@@ -248,7 +270,7 @@
                 a.click();
                 URL.revokeObjectURL(downloadUrl);
             } catch (error) {
-                errorMessage.textContent = 'Error converting files to PDF. Please try again.';
+                errorMessage.textContent = `Error converting files to PDF: ${error.message}`;
             } finally {
                 progress.style.display = 'none';
             }
@@ -304,7 +326,7 @@
                     await fileLoadPromise;
                 }
             } catch (error) {
-                errorMessage.textContent = 'Error converting files to JPEG. Please try again.';
+                errorMessage.textContent = `Error converting files to JPEG: ${error.message}`;
             } finally {
                 progress.style.display = 'none';
             }
@@ -360,7 +382,7 @@
                     await fileLoadPromise;
                 }
             } catch (error) {
-                errorMessage.textContent = 'Error converting files to PNG. Please try again.';
+                errorMessage.textContent = `Error converting files to PNG: ${error.message}`;
             } finally {
                 progress.style.display = 'none';
             }
@@ -386,6 +408,16 @@
             errorMessage.textContent = '';
             progress.style.display = 'none';
         });
+
+        // Additional UI Improvements
+        function handleFileInput(event) {
+            const files = event.target.files;
+            fileInput.files = files;
+            handleFiles();
+        }
+        
+        fileInput.addEventListener('change', handleFileInput);
+
     </script>
 </body>
 </html>
