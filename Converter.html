@@ -4,14 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PNG to PDF Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f7f7f7;
+        }
+        .container {
+            background: white;
+            padding: 2em;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 1em;
+            color: #333;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        label {
+            background: #007bff;
+            color: white;
+            padding: 0.6em 1.2em;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 1em;
+            display: inline-block;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            padding: 0.6em 1.2em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover, label:hover {
+            opacity: 0.9;
+        }
+        #result a {
+            margin-top: 1em;
+            display: inline-block;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 1em;
+        }
+        #result a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h1>Convert PNG to PDF</h1>
-    <form id="upload-form">
-        <input type="file" id="file-input" accept="image/png" required>
-        <button type="submit">Convert</button>
-    </form>
-    <div id="result"></div>
+    <div class="container">
+        <h1>Convert PNG to PDF</h1>
+        <form id="upload-form">
+            <label for="file-input">Choose PNG File</label>
+            <input type="file" id="file-input" accept="image/png" required>
+            <br>
+            <button type="submit">Convert</button>
+        </form>
+        <div id="result"></div>
+    </div>
 
     <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <script>
@@ -45,6 +105,7 @@
                 a.href = downloadUrl;
                 a.download = 'converted.pdf';
                 document.getElementById('result').appendChild(a);
+                a.textContent = 'Download PDF';
                 a.click();
                 URL.revokeObjectURL(downloadUrl);
                 a.remove();
