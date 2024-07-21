@@ -76,15 +76,31 @@
             max-width: 100%;
             max-height: 300px;
         }
+        #drop-area {
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            padding: 2em;
+            cursor: pointer;
+            color: #007bff;
+            margin-bottom: 1em;
+        }
+        #drop-area.hover {
+            background-color: #e9f5ff;
+        }
+        #file-details {
+            margin-top: 1em;
+            font-size: 0.9em;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Convert PNG to PDF</h1>
         <form id="upload-form">
-            <label for="file-input">Choose PNG File</label>
+            <div id="drop-area">Drag & Drop PNG File Here or <label for="file-input">Browse</label></div>
             <input type="file" id="file-input" accept="image/png" required>
-            <br>
+            <div id="file-details"></div>
             <button type="submit">Convert</button>
             <button type="button" id="reset-btn">Reset</button>
         </form>
@@ -98,13 +114,29 @@
     <script>
         const form = document.getElementById('upload-form');
         const fileInput = document.getElementById('file-input');
+        const dropArea = document.getElementById('drop-area');
         const preview = document.getElementById('preview');
         const progress = document.getElementById('progress');
         const result = document.getElementById('result');
         const errorMessage = document.getElementById('error-message');
         const resetBtn = document.getElementById('reset-btn');
+        const fileDetails = document.getElementById('file-details');
 
-        fileInput.addEventListener('change', function() {
+        fileInput.addEventListener('change', handleFiles);
+        dropArea.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropArea.classList.add('hover');
+        });
+        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('hover'));
+        dropArea.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropArea.classList.remove('hover');
+            const files = event.dataTransfer.files;
+            fileInput.files = files;
+            handleFiles();
+        });
+
+        function handleFiles() {
             const file = fileInput.files[0];
             if (file) {
                 const reader = new FileReader();
@@ -113,11 +145,13 @@
                     preview.style.display = 'block';
                 };
                 reader.readAsDataURL(file);
+                fileDetails.textContent = `File: ${file.name}, Size: ${file.size} bytes`;
             } else {
                 preview.src = '';
                 preview.style.display = 'none';
+                fileDetails.textContent = '';
             }
-        });
+        }
 
         form.addEventListener('submit', async function (event) {
             event.preventDefault();
@@ -172,6 +206,7 @@
             result.textContent = '';
             errorMessage.textContent = '';
             progress.style.display = 'none';
+            fileDetails.textContent = '';
         });
     </script>
 </body>
