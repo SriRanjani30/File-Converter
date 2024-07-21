@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PNG to PDF Converter</title>
+    <title>Image Converter</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,7 +20,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             border-radius: 10px;
             text-align: center;
-            max-width: 500px;
+            max-width: 700px;
             width: 100%;
         }
         h1 {
@@ -92,20 +92,50 @@
             font-size: 0.9em;
             color: #666;
         }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9f9f9;
+            padding: 0.5em;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 0.5em;
+        }
+        .file-item button {
+            background: #dc3545;
+            padding: 0.3em 0.6em;
+            font-size: 0.9em;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #007bff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Convert PNG to PDF</h1>
+        <h1>Image Converter</h1>
         <form id="upload-form">
-            <div id="drop-area">Drag & Drop PNG File Here or <label for="file-input">Browse</label></div>
-            <input type="file" id="file-input" accept="image/png" required>
+            <div id="drop-area">Drag & Drop PNG/JPEG Files Here or <label for="file-input">Browse</label></div>
+            <input type="file" id="file-input" accept="image/png, image/jpeg" multiple required>
             <div id="file-details"></div>
-            <button type="submit">Convert</button>
+            <button type="submit">Convert to PDF</button>
+            <button type="button" id="convert-to-jpeg">Convert to JPEG</button>
+            <button type="button" id="convert-to-png">Convert to PNG</button>
             <button type="button" id="reset-btn">Reset</button>
         </form>
-        <img id="preview" src="" alt="Image Preview" />
-        <div id="progress">Converting, please wait...</div>
+        <div id="progress">Processing, please wait... <span class="spinner"></span></div>
         <div id="result"></div>
         <div id="error-message"></div>
     </div>
@@ -115,12 +145,15 @@
         const form = document.getElementById('upload-form');
         const fileInput = document.getElementById('file-input');
         const dropArea = document.getElementById('drop-area');
-        const preview = document.getElementById('preview');
         const progress = document.getElementById('progress');
         const result = document.getElementById('result');
         const errorMessage = document.getElementById('error-message');
         const resetBtn = document.getElementById('reset-btn');
+        const convertToJpegBtn = document.getElementById('convert-to-jpeg');
+        const convertToPngBtn = document.getElementById('convert-to-png');
         const fileDetails = document.getElementById('file-details');
+
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
         fileInput.addEventListener('change', handleFiles);
         dropArea.addEventListener('dragover', (event) => {
@@ -137,76 +170,221 @@
         });
 
         function handleFiles() {
-            const file = fileInput.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-                fileDetails.textContent = `File: ${file.name}, Size: ${file.size} bytes`;
-            } else {
-                preview.src = '';
-                preview.style.display = 'none';
-                fileDetails.textContent = '';
-            }
+            const files = Array.from(fileInput.files);
+            fileDetails.innerHTML = '';
+            files.forEach(file => {
+                if (file.size > MAX_FILE_SIZE) {
+                    errorMessage.textContent = `File ${file.name} exceeds the 5MB size limit.`;
+                    return;
+                }
+
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.textContent = `${file.name}, Size: ${file.size} bytes`;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.addEventListener('click', () => {
+                    const newFiles = Array.from(fileInput.files).filter(f => f !== file);
+                    const dataTransfer = new DataTransfer();
+                    newFiles.forEach(f => dataTransfer.items.add(f));
+                    fileInput.files = dataTransfer.files;
+                    handleFiles();
+                });
+
+                fileItem.appendChild(removeBtn);
+                fileDetails.appendChild(fileItem);
+            });
         }
 
-        form.addEventListener('submit', async function (event) {
-            event.preventDefault();
+        async function convertToPdf() {
             progress.style.display = 'block';
             errorMessage.textContent = '';
             result.textContent = '';
 
-            const file = fileInput.files[0];
-            if (!file) {
-                alert('Please select a PNG file to convert.');
+            const files = Array.from(fileInput.files);
+            if (files.length === 0) {
+                alert('Please select image files to convert.');
                 progress.style.display = 'none';
                 return;
             }
 
             try {
-                const reader = new FileReader();
-                reader.onload = async function () {
-                    const bytes = new Uint8Array(reader.result);
-                    const pdfDoc = await PDFLib.PDFDocument.create();
-                    const pngImage = await pdfDoc.embedPng(bytes);
-                    const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
-                    page.drawImage(pngImage, {
-                        x: 0,
-                        y: 0,
-                        width: pngImage.width,
-                        height: pngImage.height,
+                const pdfDoc = await PDFLib.PDFDocument.create();
+                for (const file of files) {
+                    const reader = new FileReader();
+                    const fileLoadPromise = new Promise((resolve, reject) => {
+                        reader.onload = async function () {
+                            try {
+                                const bytes = new Uint8Array(reader.result);
+                                const image = file.type === 'image/png'
+                                    ? await pdfDoc.embedPng(bytes)
+                                    : await pdfDoc.embedJpg(bytes);
+                                const page = pdfDoc.addPage([image.width, image.height]);
+                                page.drawImage(image, {
+                                    x: 0,
+                                    y: 0,
+                                    width: image.width,
+                                    height: image.height,
+                                });
+                                resolve();
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        reader.readAsArrayBuffer(file);
                     });
+                    await fileLoadPromise;
+                }
 
-                    const pdfBytes = await pdfDoc.save();
-                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    const downloadUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    a.download = 'converted.pdf';
-                    a.textContent = 'Download PDF';
-                    result.appendChild(a);
-                    a.click();
-                    URL.revokeObjectURL(downloadUrl);
-                };
-                reader.readAsArrayBuffer(file);
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const downloadUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'converted.pdf';
+                a.textContent = 'Download PDF';
+                result.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(downloadUrl);
             } catch (error) {
-                errorMessage.textContent = 'Error converting file. Please try again.';
+                errorMessage.textContent = 'Error converting files to PDF. Please try again.';
             } finally {
                 progress.style.display = 'none';
             }
+        }
+
+        async function convertToJpeg() {
+            progress.style.display = 'block';
+            errorMessage.textContent = '';
+            result.textContent = '';
+
+            const files = Array.from(fileInput.files);
+            if (files.length === 0) {
+                alert('Please select image files to convert.');
+                progress.style.display = 'none';
+                return;
+            }
+
+            try {
+                for (const file of files) {
+                    if (file.type === 'image/jpeg') continue; // Skip JPEG files for JPEG conversion
+
+                    const reader = new FileReader();
+                    const fileLoadPromise = new Promise((resolve, reject) => {
+                        reader.onload = async function () {
+                            try {
+                                const img = new Image();
+                                img.src = URL.createObjectURL(new Blob([reader.result]));
+                                img.onload = function () {
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0);
+
+                                    canvas.toBlob(blob => {
+                                        const downloadUrl = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = downloadUrl;
+                                        a.download = file.name.replace(/\.[^/.]+$/, ".jpg");
+                                        a.textContent = 'Download JPEG';
+                                        result.appendChild(a);
+                                        a.click();
+                                        URL.revokeObjectURL(downloadUrl);
+                                        resolve();
+                                    }, 'image/jpeg');
+                                };
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        reader.readAsArrayBuffer(file);
+                    });
+                    await fileLoadPromise;
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Error converting files to JPEG. Please try again.';
+            } finally {
+                progress.style.display = 'none';
+            }
+        }
+
+        async function convertToPng() {
+            progress.style.display = 'block';
+            errorMessage.textContent = '';
+            result.textContent = '';
+
+            const files = Array.from(fileInput.files);
+            if (files.length === 0) {
+                alert('Please select image files to convert.');
+                progress.style.display = 'none';
+                return;
+            }
+
+            try {
+                for (const file of files) {
+                    if (file.type === 'image/png') continue; // Skip PNG files for PNG conversion
+
+                    const reader = new FileReader();
+                    const fileLoadPromise = new Promise((resolve, reject) => {
+                        reader.onload = async function () {
+                            try {
+                                const img = new Image();
+                                img.src = URL.createObjectURL(new Blob([reader.result]));
+                                img.onload = function () {
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = img.width;
+                                    canvas.height = img.height;
+                                    const ctx = canvas.getContext('2d');
+                                    ctx.drawImage(img, 0, 0);
+
+                                    canvas.toBlob(blob => {
+                                        const downloadUrl = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = downloadUrl;
+                                        a.download = file.name.replace(/\.[^/.]+$/, ".png");
+                                        a.textContent = 'Download PNG';
+                                        result.appendChild(a);
+                                        a.click();
+                                        URL.revokeObjectURL(downloadUrl);
+                                        resolve();
+                                    }, 'image/png');
+                                };
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        reader.readAsArrayBuffer(file);
+                    });
+                    await fileLoadPromise;
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Error converting files to PNG. Please try again.';
+            } finally {
+                progress.style.display = 'none';
+            }
+        }
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            convertToPdf();
+        });
+
+        convertToJpegBtn.addEventListener('click', function () {
+            convertToJpeg();
+        });
+
+        convertToPngBtn.addEventListener('click', function () {
+            convertToPng();
         });
 
         resetBtn.addEventListener('click', function () {
             fileInput.value = '';
-            preview.src = '';
-            preview.style.display = 'none';
+            fileDetails.innerHTML = '';
             result.textContent = '';
             errorMessage.textContent = '';
             progress.style.display = 'none';
-            fileDetails.textContent = '';
         });
     </script>
 </body>
