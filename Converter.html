@@ -12,18 +12,21 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f7f7f7;
+            background-color: #eef2f7;
         }
         .container {
             background: white;
             padding: 2em;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
             text-align: center;
+            max-width: 500px;
+            width: 100%;
         }
         h1 {
             margin-bottom: 1em;
             color: #333;
+            font-size: 1.5em;
         }
         input[type="file"] {
             display: none;
@@ -32,7 +35,7 @@
             background: #007bff;
             color: white;
             padding: 0.6em 1.2em;
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
             margin-bottom: 1em;
             display: inline-block;
@@ -42,9 +45,10 @@
             color: white;
             padding: 0.6em 1.2em;
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             cursor: pointer;
             font-size: 1em;
+            margin: 0.5em;
         }
         button:hover, label:hover {
             opacity: 0.9;
@@ -59,6 +63,19 @@
         #result a:hover {
             text-decoration: underline;
         }
+        #progress {
+            display: none;
+            margin-top: 1em;
+        }
+        #error-message {
+            color: red;
+            margin-top: 1em;
+        }
+        #preview {
+            margin-top: 1em;
+            max-width: 100%;
+            max-height: 300px;
+        }
     </style>
 </head>
 <body>
@@ -69,48 +86,92 @@
             <input type="file" id="file-input" accept="image/png" required>
             <br>
             <button type="submit">Convert</button>
+            <button type="button" id="reset-btn">Reset</button>
         </form>
+        <img id="preview" src="" alt="Image Preview" />
+        <div id="progress">Converting, please wait...</div>
         <div id="result"></div>
+        <div id="error-message"></div>
     </div>
 
     <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <script>
-        document.getElementById('upload-form').addEventListener('submit', async function (event) {
+        const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-input');
+        const preview = document.getElementById('preview');
+        const progress = document.getElementById('progress');
+        const result = document.getElementById('result');
+        const errorMessage = document.getElementById('error-message');
+        const resetBtn = document.getElementById('reset-btn');
+
+        fileInput.addEventListener('change', function() {
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = '';
+                preview.style.display = 'none';
+            }
+        });
+
+        form.addEventListener('submit', async function (event) {
             event.preventDefault();
-            
-            const fileInput = document.getElementById('file-input');
+            progress.style.display = 'block';
+            errorMessage.textContent = '';
+            result.textContent = '';
+
             const file = fileInput.files[0];
             if (!file) {
                 alert('Please select a PNG file to convert.');
+                progress.style.display = 'none';
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = async function () {
-                const bytes = new Uint8Array(reader.result);
-                const pdfDoc = await PDFLib.PDFDocument.create();
-                const pngImage = await pdfDoc.embedPng(bytes);
-                const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
-                page.drawImage(pngImage, {
-                    x: 0,
-                    y: 0,
-                    width: pngImage.width,
-                    height: pngImage.height,
-                });
+            try {
+                const reader = new FileReader();
+                reader.onload = async function () {
+                    const bytes = new Uint8Array(reader.result);
+                    const pdfDoc = await PDFLib.PDFDocument.create();
+                    const pngImage = await pdfDoc.embedPng(bytes);
+                    const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
+                    page.drawImage(pngImage, {
+                        x: 0,
+                        y: 0,
+                        width: pngImage.width,
+                        height: pngImage.height,
+                    });
 
-                const pdfBytes = await pdfDoc.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const downloadUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = 'converted.pdf';
-                document.getElementById('result').appendChild(a);
-                a.textContent = 'Download PDF';
-                a.click();
-                URL.revokeObjectURL(downloadUrl);
-                a.remove();
-            };
-            reader.readAsArrayBuffer(file);
+                    const pdfBytes = await pdfDoc.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = 'converted.pdf';
+                    a.textContent = 'Download PDF';
+                    result.appendChild(a);
+                    a.click();
+                    URL.revokeObjectURL(downloadUrl);
+                };
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                errorMessage.textContent = 'Error converting file. Please try again.';
+            } finally {
+                progress.style.display = 'none';
+            }
+        });
+
+        resetBtn.addEventListener('click', function () {
+            fileInput.value = '';
+            preview.src = '';
+            preview.style.display = 'none';
+            result.textContent = '';
+            errorMessage.textContent = '';
+            progress.style.display = 'none';
         });
     </script>
 </body>
