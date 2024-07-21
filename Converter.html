@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG to PDF Converter</title>
+</head>
+<body>
+    <h1>Convert PNG to PDF</h1>
+    <form id="upload-form">
+        <input type="file" id="file-input" accept="image/png" required>
+        <button type="submit">Convert</button>
+    </form>
+    <div id="result"></div>
+
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a PNG file to convert.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function () {
+                const bytes = new Uint8Array(reader.result);
+                const pdfDoc = await PDFLib.PDFDocument.create();
+                const pngImage = await pdfDoc.embedPng(bytes);
+                const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
+                page.drawImage(pngImage, {
+                    x: 0,
+                    y: 0,
+                    width: pngImage.width,
+                    height: pngImage.height,
+                });
+
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const downloadUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'converted.pdf';
+                document.getElementById('result').appendChild(a);
+                a.click();
+                URL.revokeObjectURL(downloadUrl);
+                a.remove();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
